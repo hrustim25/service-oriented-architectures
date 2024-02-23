@@ -1,0 +1,34 @@
+@startuml
+
+title Containers diagram
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons2
+!include DEVICONS/go.puml
+!define CLOUDINSIGHT https://raw.githubusercontent.com/plantuml/plantuml-stdlib/master/cloudinsight
+!include CLOUDINSIGHT/kafka.puml
+!include CLOUDINSIGHT/postgresql.puml
+
+Person(user, "Пользователь")
+
+Container(frontend, "Фронтенд", "", "пользовательский интерфейс")
+Container(main_service, "backend", "go", "главный сервис", "go")
+Container(stat_service, "statistics", "go", "сервис статистики", "go")
+Container(task_service, "tracker", "go", "сервис задач и комментариев", "go")
+
+ContainerQueue(event_queue, "kafka", "kafka", "Передает события пользователей", "kafka")
+ContainerDb(users_db, "Users DB", "Postgres", "Хранит данные авторизации и профиля", "postgresql")
+ContainerDb(stat_db, "Statistics DB", "Postgres", "Хранит статистику по лайкам и просмотрам", "postgresql")
+ContainerDb(task_db, "Tasks DB", "Postgres", "Хранит информацию по задачам", "postgresql")
+
+Rel(user, frontend, "Регистрация, взаимодействие с системой", "REST")
+Rel(frontend, main_service, "Вызов функций", "gRPC")
+Rel(main_service, users_db, "Регистрация/авторизация")
+Rel(main_service, event_queue, "Запись событий лайков и просмотров")
+Rel(event_queue, stat_service, "Чтение топика")
+Rel(stat_service, stat_db, "Передача данных о лайках и просмотрах")
+Rel(main_service, stat_service, "Сбор статистики", "gRPC")
+Rel(main_service, task_service, "Работа с задачами", "gRPC")
+Rel(task_service, task_db, "Запись задач, комментариев, фильтрация задач")
+
+@enduml

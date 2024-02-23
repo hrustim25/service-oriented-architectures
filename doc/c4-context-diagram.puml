@@ -1,0 +1,12 @@
+@startuml
+
+title Context diagram
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "Пользователь", "Пользатель системы")
+System(system, "Основная страница", "")
+
+Rel(user, system, "Регистрация, работа с задачами")
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+
+title Entity diagram
+
+object User {
+    user_id
+    login
+    password_hash
+    name
+    registration_time
+}
+
+object Task {
+    task_id
+    owner_user_id
+    name
+    description
+    completion_status
+    creation_time
+    deadline_time
+}
+
+object Comment {
+    comment_id
+    task_id
+    author_user_id
+    comment_entry
+    creation_time
+    modification_time (optional)
+    parent_comment (optional)
+}
+
+object TaskStatistics {
+    task_id
+    view_count
+    like_count
+}
+
+object UserStatistics {
+    user_id
+    overall_view_count
+    overall_like_count
+}
+
+Task::owner_user_id --> User::user_id
+Comment::task_id --> Task::task_id
+Comment::author_user_id --> User::user_id
+TaskStatistics::task_id --> Task::task_id
+UserStatistics::user_id --> User::user_id
+
+@enduml

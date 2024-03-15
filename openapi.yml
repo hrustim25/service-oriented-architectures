@@ -1,0 +1,101 @@
+openapi: 3.0.1
+
+info:
+  title: Task tracker Client service API
+  version: 1.0.0
+
+paths:
+  /register:
+    post:
+      parameters:
+        - name: login
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: password
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Registration successful'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: 'Request data is invalid'
+        '403':
+          description: 'Login already used'
+        '500':
+          description: 'Internal server error'
+  /auth:
+    post:
+      parameters:
+        - name: login
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: password
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Authorization successful'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: 'Request data is invalid'
+        '404':
+          description: 'Login or password is incorrent'
+        '500':
+          description: 'Internal server error'
+  /update:
+    put:
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                surname:
+                  type: string
+                birthdate:
+                  type: string
+                email:
+                  type: string
+                phone-number:
+                  type: string
+      responses:
+        '200':
+          description: 'Update successful'
+        '400':
+          description: 'Request data is invalid'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'User not found'
+        '500':
+          description: 'Internal server error'

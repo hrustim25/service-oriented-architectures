@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -14,6 +15,9 @@ func main() {
 	SetupAuthData()
 	SetupDB()
 	SetupHandlers()
+	SetupTaskServiceHandler()
+
+	log.Default().Println("Starting client server...")
 
 	err := http.ListenAndServe("0.0.0.0:8080", nil)
 	if err != nil {

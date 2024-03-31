@@ -16,7 +16,7 @@ type User struct {
 	Surname      string `json:"surname"`
 	Birthdate    string `json:"birthdate"`
 	Email        string `json:"email"`
-	PhoneNumber  string `json:"phone-number"`
+	PhoneNumber  string `json:"phone_number"`
 }
 
 type DBHandler struct {
@@ -33,19 +33,23 @@ func LoadQuery(filename string) string {
 	return string(result)
 }
 
-func (h *DBHandler) LookupLogin(login string) bool {
-	rows, err := h.db.Query(context.Background(), "select login from users where login=$1", login)
-
+func (h *DBHandler) LookupLogin(login string) *uint64 {
+	rows, err := h.db.Query(context.Background(), "SELECT user_id FROM users WHERE login=$1", login)
 	if err != nil {
-		return false
+		return nil
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return false
+		return nil
 	}
-	values, _ := rows.Values()
-	return len(values) > 0
+
+	var userID uint64
+	err = rows.Scan(&userID)
+	if err != nil {
+		return nil
+	}
+	return &userID
 }
 
 func (h *DBHandler) AuthUser(user User) bool {
@@ -87,7 +91,7 @@ func SetupDB() {
 
 	time.Sleep(5 * time.Second)
 
-	poolConfig, err := pgxpool.ParseConfig(os.Getenv("POSTGRES_URL"))
+	poolConfig, err := pgxpool.ParseConfig(os.Getenv(DB_URL_ENV))
 	if err != nil {
 		log.Fatalf("Failed to parse DB config, err: %v", err)
 	}

@@ -1,21 +1,46 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
+
+	"client_service/proto"
 )
 
 type AuthResponseBody struct {
 	Token string `json:"token"`
 }
 
+type CreateTaskResponseBody struct {
+	TaskID uint64 `json:"task_id"`
+}
+
+type Task struct {
+	AuthorId         uint64 `json:"author_id"`
+	TaskId           uint64 `json:"task_id"`
+	Name             string `json:"name"`
+	Description      string `json:"description"`
+	DeadlineDate     string `json:"deadline_date"`
+	CreationDate     string `json:"creation_date"`
+	CompletionStatus string `json:"completion_status"`
+}
+
 func SetupHandlers() {
 	http.HandleFunc("/register", RegisterHandler)
 	http.HandleFunc("/auth", AuthHandler)
 	http.HandleFunc("/update", UpdateHandler)
+
+	http.HandleFunc("/task/create", TaskCreateHandler)
+	http.HandleFunc("/task/update", TaskUpdateHandler)
+	http.HandleFunc("/task/delete", TaskDeleteHandler)
+	http.HandleFunc("/task/get", TaskGetHandler)
+	http.HandleFunc("/tasks/page", TasksGetPageHandler)
 }
 
 func RegisterHandler(w http.ResponseWriter, req *http.Request) {
@@ -32,7 +57,7 @@ func RegisterHandler(w http.ResponseWriter, req *http.Request) {
 	tempHash := sha256.Sum256([]byte(req.URL.Query().Get("password")))
 	passwordHash := base64.URLEncoding.EncodeToString(tempHash[:])
 
-	if clientDB.LookupLogin(login) {
+	if clientDB.LookupLogin(login) != nil {
 		http.Error(w, "Login already used", http.StatusForbidden)
 		return
 	}
@@ -112,7 +137,7 @@ func UpdateHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !clientDB.LookupLogin(login) {
+	if clientDB.LookupLogin(login) == nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
@@ -141,4 +166,253 @@ func UpdateHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func TaskCreateHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var taskData Task
+	decoder := json.NewDecoder(req.Body)
+	err = decoder.Decode(&taskData)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	taskData.AuthorId = *userID
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	taskServiceResponse, err := taskService.client.CreateTask(ctx, &proto.CreateTaskRequest{UserId: taskData.AuthorId, Name: taskData.Name, Description: taskData.Description, DeadlineDate: taskData.DeadlineDate})
+	if err != nil {
+		log.Default().Printf("Create task error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	respBody, err := json.Marshal(CreateTaskResponseBody{TaskID: taskServiceResponse.TaskId})
+	if err != nil {
+		log.Default().Printf("Response json marshal error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBody)
+}
+
+func TaskUpdateHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "PUT" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !req.URL.Query().Has("task_id") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.ParseUint(req.URL.Query().Get("task_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	var taskData Task
+	decoder := json.NewDecoder(req.Body)
+	err = decoder.Decode(&taskData)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	taskData.AuthorId = *userID
+	taskData.TaskId = taskID
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err = taskService.client.UpdateTask(ctx, &proto.UpdateTaskRequest{
+		UserId: taskData.AuthorId, TaskId: taskData.TaskId, Name: taskData.Name, Description: taskData.Description, DeadlineDate: taskData.DeadlineDate, CompletionStatus: taskData.CompletionStatus})
+	if err != nil {
+		log.Default().Printf("Update task error: %v", err)
+		http.Error(w, "Task or user not found", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func TaskDeleteHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "DELETE" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !req.URL.Query().Has("task_id") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.ParseUint(req.URL.Query().Get("task_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err = taskService.client.DeleteTask(ctx, &proto.DeleteTaskRequest{UserId: *userID, TaskId: taskID})
+	if err != nil {
+		log.Default().Printf("Delete task error: %v", err)
+		http.Error(w, "Task or user not found", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func TaskGetHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !req.URL.Query().Has("task_id") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.ParseUint(req.URL.Query().Get("task_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	taskServiceResponse, err := taskService.client.GetTask(ctx, &proto.GetTaskRequest{UserId: *userID, TaskId: taskID})
+	if err != nil {
+		log.Default().Printf("Get task error: %v", err)
+		http.Error(w, "Task or user not found", http.StatusNotFound)
+		return
+	}
+
+	respBody, err := json.Marshal(taskServiceResponse.Task)
+	if err != nil {
+		log.Default().Printf("Response json marshal error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBody)
+}
+
+func TasksGetPageHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !req.URL.Query().Has("page_index") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	pageIndex, err := strconv.ParseUint(req.URL.Query().Get("page_index"), 10, 32)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	tasksPerPage, err := strconv.ParseUint(req.URL.Query().Get("tasks_per_page"), 10, 32)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	taskServiceResponse, err := taskService.client.GetTasksPage(ctx, &proto.GetTasksPageRequest{UserId: *userID, PageIndex: uint32(pageIndex), TasksPerPage: uint32(tasksPerPage)})
+	if err != nil {
+		log.Default().Printf("Get task error: %v", err)
+		http.Error(w, "Task or user not found", http.StatusNotFound)
+		return
+	}
+
+	respBody, err := json.Marshal(taskServiceResponse.Tasks)
+	if err != nil {
+		log.Default().Printf("Response json marshal error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBody)
 }

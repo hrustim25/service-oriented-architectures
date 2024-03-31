@@ -7,20 +7,37 @@ services:
       dockerfile: ./client_service/client_db.dockerfile
     restart: always
     environment:
-      POSTGRES_DB: "${DB_NAME}"
-      POSTGRES_USER: "${DB_USER}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: "${CLIENT_DB_NAME}"
+      POSTGRES_USER: "${CLIENT_DB_USER}"
+      POSTGRES_PASSWORD: "${CLIENT_DB_PASSWORD}"
   client_service:
     build:
       context: .
       dockerfile: ./client_service/client_service.dockerfile
     environment:
-      POSTGRES_URL: "postgres://${DB_USER}:${DB_PASSWORD}@client_db:5432/${DB_NAME}"
+      POSTGRES_URL: "postgres://${CLIENT_DB_USER}:${CLIENT_DB_PASSWORD}@client_db:5432/${CLIENT_DB_NAME}"
       PRIVATE_KEY_PATH: "crypto/signature.pem"
       PUBLIC_KEY_PATH: "crypto/signature.pub"
     ports:
       - "8080:8080"
     depends_on:
       - client_db
+  task_db:
+    build:
+      context: .
+      dockerfile: ./task_service/task_db.dockerfile
+    restart: always
+    environment:
+      POSTGRES_DB: "${TASK_DB_NAME}"
+      POSTGRES_USER: "${TASK_DB_USER}"
+      POSTGRES_PASSWORD: "${TASK_DB_PASSWORD}"
+  task_service:
+    build:
+      context: .
+      dockerfile: ./task_service/task_service.dockerfile
+    environment:
+      POSTGRES_URL: "postgres://${TASK_DB_USER}:${TASK_DB_PASSWORD}@task_db:5432/${TASK_DB_NAME}"
+    ports:
+      - "50051:50051"
+    depends_on:
+      - task_db

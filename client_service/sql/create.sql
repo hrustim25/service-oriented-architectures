@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     pwd_hash VARCHAR(100) NOT NULL,
     name VARCHAR(100) DEFAULT '',
     surname VARCHAR(100) DEFAULT '',
-    birthdate VARCHAR(10) DEFAULT '',
+    birthdate VARCHAR(20) DEFAULT '',
     email VARCHAR(100) DEFAULT '',
     phone_number VARCHAR(20) DEFAULT ''
 );

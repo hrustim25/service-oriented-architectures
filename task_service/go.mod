@@ -1,9 +1,8 @@
-module client_service
+module task_service
 
 go 1.20
 
 require (
-	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/jackc/pgx/v5 v5.5.5
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0

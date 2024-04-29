@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+option go_package = "./proto";
+
+message CreateTaskRequest {
+  uint64 user_id = 1;
+  string name = 2;
+  string description = 3;
+  string deadline_date = 4;
+}
+
+message CreateTaskResponse { uint64 task_id = 1; }
+
+message UpdateTaskRequest {
+  uint64 user_id = 1;
+  uint64 task_id = 2;
+  string name = 3;
+  string description = 4;
+  string deadline_date = 5;
+  string completion_status = 6;
+}
+
+message UpdateTaskResponse {}
+
+message DeleteTaskRequest {
+  uint64 user_id = 1;
+  uint64 task_id = 2;
+}
+
+message DeleteTaskResponse {}
+
+message GetTaskRequest {
+  uint64 user_id = 1;
+  uint64 task_id = 2;
+}
+
+message GetTaskResponse { Task task = 1; }
+
+message GetTasksPageRequest {
+  uint64 user_id = 1;
+  uint32 page_index = 2;
+  uint32 tasks_per_page = 3;
+}
+
+message GetTasksPageResponse { repeated Task tasks = 1; }
+
+message Task {
+  uint64 task_id = 1;
+  string name = 2;
+  string description = 3;
+  string deadline_date = 4;
+  string creation_date = 5;
+  string completion_status = 6;
+}
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+  rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse);
+  rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  rpc GetTasksPage(GetTasksPageRequest) returns (GetTasksPageResponse);
+}

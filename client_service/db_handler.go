@@ -27,11 +27,26 @@ type DBHandler struct {
 
 var clientDB DBHandler
 
-//go:embed sql/create.sql
+//go:embed sql/create_table.sql
 var createTableQuery string
 
+//go:embed sql/lookup_login.sql
+var lookupLoginQuery string
+
+//go:embed sql/get_user_creds.sql
+var getUserCredsQuery string
+
+//go:embed sql/add_user.sql
+var addUserQuery string
+
+//go:embed sql/load_user.sql
+var loadUserQuery string
+
+//go:embed sql/update_user.sql
+var updateUserQuery string
+
 func (h *DBHandler) LookupLogin(login string) *uint64 {
-	rows, err := h.db.Query(context.Background(), "SELECT user_id FROM users WHERE login=$1", login)
+	rows, err := h.db.Query(context.Background(), lookupLoginQuery, login)
 	if err != nil {
 		return nil
 	}
@@ -50,7 +65,7 @@ func (h *DBHandler) LookupLogin(login string) *uint64 {
 }
 
 func (h *DBHandler) AuthUser(user User) bool {
-	rows, err := h.db.Query(context.Background(), "SELECT login FROM users WHERE login=$1 AND pwd_hash=$2", user.Login, user.PasswordHash)
+	rows, err := h.db.Query(context.Background(), getUserCredsQuery, user.Login, user.PasswordHash)
 
 	if err != nil {
 		return false
@@ -65,18 +80,18 @@ func (h *DBHandler) AuthUser(user User) bool {
 }
 
 func (h *DBHandler) AddUser(user User) error {
-	_, err := h.db.Exec(context.Background(), "INSERT INTO users(login, pwd_hash) VALUES($1, $2)", user.Login, user.PasswordHash)
+	_, err := h.db.Exec(context.Background(), addUserQuery, user.Login, user.PasswordHash)
 	return err
 }
 
 func (h *DBHandler) LoadUserData(login string) (User, error) {
 	var name, surname, birthdate, email, phoneNumber string
-	err := h.db.QueryRow(context.Background(), "SELECT name, surname, birthdate, email, phone_number FROM users WHERE login=$1", login).Scan(&name, &surname, &birthdate, &email, &phoneNumber)
+	err := h.db.QueryRow(context.Background(), loadUserQuery, login).Scan(&name, &surname, &birthdate, &email, &phoneNumber)
 	return User{Name: name, Surname: surname, Birthdate: birthdate, Email: email, PhoneNumber: phoneNumber}, err
 }
 
 func (h *DBHandler) UpdateUserData(user User) error {
-	_, err := h.db.Exec(context.Background(), "UPDATE users SET name=$1, surname=$2, birthdate=$3, email=$4, phone_number=$5 WHERE login=$6",
+	_, err := h.db.Exec(context.Background(), updateUserQuery,
 		user.Name, user.Surname, user.Birthdate, user.Email, user.PhoneNumber, user.Login)
 	return err
 }

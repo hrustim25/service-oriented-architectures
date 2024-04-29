@@ -26,11 +26,29 @@ type DBHandler struct {
 	db *pgxpool.Pool
 }
 
-//go:embed sql/create.sql
+//go:embed sql/create_table.sql
 var createTableQuery string
 
+//go:embed sql/lookup_task.sql
+var lookupTaskQuery string
+
+//go:embed sql/create_task.sql
+var createTaskQuery string
+
+//go:embed sql/update_task.sql
+var updateTaskQuery string
+
+//go:embed sql/delete_task.sql
+var deleteTaskQuery string
+
+//go:embed sql/get_task.sql
+var getTaskQuery string
+
+//go:embed sql/get_tasks_page.sql
+var getTasksPageQuery string
+
 func (h *DBHandler) LookupTask(taskId uint64) *uint64 {
-	rows, err := h.db.Query(context.Background(), "SELECT author_id FROM tasks WHERE task_id=$1", taskId)
+	rows, err := h.db.Query(context.Background(), lookupTaskQuery, taskId)
 	if err != nil {
 		return nil
 	}
@@ -50,7 +68,7 @@ func (h *DBHandler) LookupTask(taskId uint64) *uint64 {
 
 func (h *DBHandler) CreateTask(task Task) (uint64, error) {
 	var taskID uint64
-	err := h.db.QueryRow(context.Background(), "INSERT INTO tasks(author_id, name, description, deadline_date, creation_date) VALUES($1, $2, $3, $4, $5) RETURNING task_id",
+	err := h.db.QueryRow(context.Background(), createTaskQuery,
 		task.AuthorId, task.Name, task.Description, task.DeadlineDate, task.CreationDate).Scan(&taskID)
 	if err != nil {
 		return 0, err
@@ -63,7 +81,7 @@ func (h *DBHandler) UpdateTask(task Task) error {
 	if currentTaskAuthorId == nil || *currentTaskAuthorId != task.AuthorId {
 		return errors.New("unknown task-id and author-id pair")
 	}
-	_, err := h.db.Exec(context.Background(), "UPDATE tasks SET name=$1, description=$2, deadline_date=$3, completion_status=$4 WHERE task_id=$5",
+	_, err := h.db.Exec(context.Background(), updateTaskQuery,
 		task.Name, task.Description, task.DeadlineDate, task.CompletionStatus, task.TaskId)
 	return err
 }
@@ -73,7 +91,7 @@ func (h *DBHandler) DeleteTask(authorID uint64, taskID uint64) error {
 	if currentTaskAuthorId == nil || *currentTaskAuthorId != authorID {
 		return errors.New("unknown task-id and author-id pair")
 	}
-	_, err := h.db.Exec(context.Background(), "DELETE FROM tasks WHERE task_id=$1", taskID)
+	_, err := h.db.Exec(context.Background(), deleteTaskQuery, taskID)
 	return err
 }
 
@@ -83,14 +101,14 @@ func (h *DBHandler) GetTask(authorID uint64, taskID uint64) (Task, error) {
 		return Task{}, errors.New("unknown task-id and author-id pair")
 	}
 	var task Task
-	err := h.db.QueryRow(context.Background(), "SELECT task_id, name, description, deadline_date, creation_date, completion_status FROM tasks WHERE task_id=$1",
+	err := h.db.QueryRow(context.Background(), getTaskQuery,
 		taskID).Scan(&task.TaskId, &task.Name, &task.Description, &task.DeadlineDate, &task.CreationDate, &task.CompletionStatus)
 	return task, err
 }
 
 func (h *DBHandler) GetTasksPage(authorID uint64, pageIndex, pageLimit uint32) ([]Task, error) {
 	tasks := make([]Task, 0, pageLimit)
-	rows, err := h.db.Query(context.Background(), "SELECT task_id, name, description, deadline_date, creation_date, completion_status FROM tasks WHERE author_id=$1 LIMIT $2 OFFSET $3",
+	rows, err := h.db.Query(context.Background(), getTasksPageQuery,
 		authorID, pageLimit, (pageIndex-1)*pageLimit)
 	if err != nil {
 		return nil, err

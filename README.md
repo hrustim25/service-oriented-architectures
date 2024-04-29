@@ -80,13 +80,13 @@ docker compose up --force-recreate task_service task_db
 Во всех запросах используется токен, выданный при регистрации/авторизации.
 ```
 # Создание задачи
-curl -X POST "localhost:8080/task/create?token=<your-token>" -H "Content-Type: application/json" -d '{"<task-field>": "<value>"}'
+curl -X POST "localhost:8080/task?token=<your-token>" -H "Content-Type: application/json" -d '{"<task-field>": "<value>"}'
 # Обновление задачи
-curl -X PUT "localhost:8080/task/update?token=<your-token>&task_id=<your-task-id>" -H "Content-Type: application/json" -d '{"<task-field>": "<value>"}'
+curl -X PUT "localhost:8080/task?token=<your-token>&task_id=<your-task-id>" -H "Content-Type: application/json" -d '{"<task-field>": "<value>"}'
 # Удаление задачи
-curl -X DELETE "localhost:8080/task/delete?token=<your-token>&task_id=<your-task-id>"
+curl -X DELETE "localhost:8080/task?token=<your-token>&task_id=<your-task-id>"
 # Получение задачи
-curl -X GET "localhost:8080/task/get?token=<your-token>&task_id=<required-task-id>"
+curl -X GET "localhost:8080/task?token=<your-token>&task_id=<required-task-id>"
 # Получение списка задач
-curl -X GET "localhost:8080/tasks/page?token=<your-token>&page_index=<required-page-index>&tasks_per_page=<size-of-tasks-page-you-want>"
+curl -X GET "localhost:8080/tasks?token=<your-token>&page_index=<required-page-index>&tasks_per_page=<size-of-tasks-page-you-want>"
 ```

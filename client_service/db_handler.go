@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	_ "embed"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -25,13 +27,8 @@ type DBHandler struct {
 
 var clientDB DBHandler
 
-func LoadQuery(filename string) string {
-	result, err := os.ReadFile(filename)
-	if err != nil {
-		log.Fatal("file not found")
-	}
-	return string(result)
-}
+//go:embed sql/create.sql
+var createTableQuery string
 
 func (h *DBHandler) LookupLogin(login string) *uint64 {
 	rows, err := h.db.Query(context.Background(), "SELECT user_id FROM users WHERE login=$1", login)
@@ -99,6 +96,11 @@ func SetupDB() {
 	db, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
 		log.Fatalf("Failed to connect to DB, err: %v", err)
+	}
+
+	_, err = db.Exec(context.Background(), createTableQuery)
+	if err != nil {
+		log.Fatalf("Failed to create table in DB, err: %v", err)
 	}
 
 	clientDB = DBHandler{db}

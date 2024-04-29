@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"client_service/proto"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type AuthResponseBody struct {
@@ -32,22 +34,22 @@ type Task struct {
 }
 
 func SetupHandlers() {
-	http.HandleFunc("/register", RegisterHandler)
-	http.HandleFunc("/auth", AuthHandler)
-	http.HandleFunc("/update", UpdateHandler)
+	router := chi.NewRouter()
 
-	http.HandleFunc("/task/create", TaskCreateHandler)
-	http.HandleFunc("/task/update", TaskUpdateHandler)
-	http.HandleFunc("/task/delete", TaskDeleteHandler)
-	http.HandleFunc("/task/get", TaskGetHandler)
-	http.HandleFunc("/tasks/page", TasksGetPageHandler)
+	router.Post("/register", RegisterHandler)
+	router.Post("/auth", AuthHandler)
+	router.Put("/update", UpdateHandler)
+
+	router.Post("/task", TaskCreateHandler)
+	router.Put("/task", TaskUpdateHandler)
+	router.Delete("/task", TaskDeleteHandler)
+	router.Get("/task", TaskGetHandler)
+	router.Get("/tasks", TasksGetPageHandler)
+
+	http.Handle("/", router)
 }
 
 func RegisterHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	if !req.URL.Query().Has("login") || !req.URL.Query().Has("password") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
@@ -86,10 +88,6 @@ func RegisterHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func AuthHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	if !req.URL.Query().Has("login") || !req.URL.Query().Has("password") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
@@ -121,11 +119,6 @@ func AuthHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func UpdateHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "PUT" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	if !req.URL.Query().Has("token") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
@@ -169,10 +162,6 @@ func UpdateHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func TaskCreateHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	if !req.URL.Query().Has("token") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
@@ -218,10 +207,6 @@ func TaskCreateHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func TaskUpdateHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "PUT" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	if !req.URL.Query().Has("task_id") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
@@ -272,10 +257,6 @@ func TaskUpdateHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func TaskDeleteHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "DELETE" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	if !req.URL.Query().Has("task_id") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
@@ -315,10 +296,6 @@ func TaskDeleteHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func TaskGetHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	if !req.URL.Query().Has("task_id") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
@@ -364,10 +341,6 @@ func TaskGetHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func TasksGetPageHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	if !req.URL.Query().Has("page_index") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return

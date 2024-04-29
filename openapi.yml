@@ -99,7 +99,7 @@ paths:
           description: 'User not found'
         '500':
           description: 'Internal server error'
-  /task/create:
+  /task:
     post:
       parameters:
         - name: token
@@ -138,7 +138,6 @@ paths:
           description: 'User not found'
         '500':
           description: 'Internal server error'
-  /task/update:
     put:
       parameters:
         - name: token
@@ -177,7 +176,6 @@ paths:
           description: 'User or task not found'
         '500':
           description: 'Internal server error'
-  /task/delete:
     delete:
       parameters:
         - name: token
@@ -201,7 +199,6 @@ paths:
           description: 'User or task not found'
         '500':
           description: 'Internal server error'
-  /task/get:
     get:
       parameters:
         - name: token
@@ -244,7 +241,7 @@ paths:
           description: 'User or task not found'
         '500':
           description: 'Internal server error'
-  /tasks/page:
+  /tasks:
     get:
       parameters:
         - name: token

@@ -46,8 +46,8 @@ func SetupHandlers() {
 	router.Get("/task", TaskGetHandler)
 	router.Get("/tasks", TasksGetPageHandler)
 
-	// router.Get("/task", TaskGetHandler)
-	// router.Get("/tasks", TasksGetPageHandler)
+	router.Get("/task/view", TaskViewHandler)
+	router.Get("/task/like", TaskLikeHandler)
 
 	http.Handle("/", router)
 }
@@ -398,4 +398,100 @@ func TasksGetPageHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	w.Write(respBody)
+}
+
+func TaskViewHandler(w http.ResponseWriter, req *http.Request) {
+	if !req.URL.Query().Has("task_id") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.ParseUint(req.URL.Query().Get("task_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// defer cancel()
+	// taskServiceResponse, err := taskService.client.GetTask(ctx, &proto.GetTaskRequest{UserId: *userID, TaskId: taskID})
+	// if err != nil {
+	// 	log.Default().Printf("Get task error: %v", err)
+	// 	http.Error(w, "Task or user not found", http.StatusNotFound)
+	// 	return
+	// }
+
+	// respBody, err := json.Marshal(taskServiceResponse.Task)
+	// if err != nil {
+	// 	log.Default().Printf("Response json marshal error: %v", err)
+	// 	http.Error(w, "Internal server error", http.StatusInternalServerError)
+	// 	return
+	// }
+	// w.Write(respBody)
+
+	_ = taskID
+	w.WriteHeader(http.StatusOK)
+}
+
+func TaskLikeHandler(w http.ResponseWriter, req *http.Request) {
+	if !req.URL.Query().Has("task_id") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.ParseUint(req.URL.Query().Get("task_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// defer cancel()
+	// taskServiceResponse, err := taskService.client.GetTask(ctx, &proto.GetTaskRequest{UserId: *userID, TaskId: taskID})
+	// if err != nil {
+	// 	log.Default().Printf("Get task error: %v", err)
+	// 	http.Error(w, "Task or user not found", http.StatusNotFound)
+	// 	return
+	// }
+
+	// respBody, err := json.Marshal(taskServiceResponse.Task)
+	// if err != nil {
+	// 	log.Default().Printf("Response json marshal error: %v", err)
+	// 	http.Error(w, "Internal server error", http.StatusInternalServerError)
+	// 	return
+	// }
+	// w.Write(respBody)
+
+	_ = taskID
+	w.WriteHeader(http.StatusOK)
 }

@@ -296,3 +296,51 @@ paths:
           description: 'User or page not found'
         '500':
           description: 'Internal server error'
+  /task/view:
+    post:
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: task_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Add view task successful'
+        '400':
+          description: 'Request data is invalid'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'User or task not found'
+        '500':
+          description: 'Internal server error'
+  /task/like:
+    post:
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: task_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Add like task successful'
+        '400':
+          description: 'Request data is invalid'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'User or task not found'
+        '500':
+          description: 'Internal server error'

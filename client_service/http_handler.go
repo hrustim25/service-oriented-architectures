@@ -46,8 +46,8 @@ func SetupHandlers() {
 	router.Get("/task", TaskGetHandler)
 	router.Get("/tasks", TasksGetPageHandler)
 
-	router.Get("/task/view", TaskViewHandler)
-	router.Get("/task/like", TaskLikeHandler)
+	router.Post("/task/view", TaskViewHandler)
+	router.Post("/task/like", TaskLikeHandler)
 
 	http.Handle("/", router)
 }
@@ -427,24 +427,13 @@ func TaskViewHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	// defer cancel()
-	// taskServiceResponse, err := taskService.client.GetTask(ctx, &proto.GetTaskRequest{UserId: *userID, TaskId: taskID})
-	// if err != nil {
-	// 	log.Default().Printf("Get task error: %v", err)
-	// 	http.Error(w, "Task or user not found", http.StatusNotFound)
-	// 	return
-	// }
+	err = statBroker.SendEventMessage(BrokerMessage{UserID: *userID, TaskID: taskID, EventID: ViewEventID})
+	if err != nil {
+		log.Printf("Send msg to broker err: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
-	// respBody, err := json.Marshal(taskServiceResponse.Task)
-	// if err != nil {
-	// 	log.Default().Printf("Response json marshal error: %v", err)
-	// 	http.Error(w, "Internal server error", http.StatusInternalServerError)
-	// 	return
-	// }
-	// w.Write(respBody)
-
-	_ = taskID
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -475,23 +464,12 @@ func TaskLikeHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	// defer cancel()
-	// taskServiceResponse, err := taskService.client.GetTask(ctx, &proto.GetTaskRequest{UserId: *userID, TaskId: taskID})
-	// if err != nil {
-	// 	log.Default().Printf("Get task error: %v", err)
-	// 	http.Error(w, "Task or user not found", http.StatusNotFound)
-	// 	return
-	// }
+	err = statBroker.SendEventMessage(BrokerMessage{UserID: *userID, TaskID: taskID, EventID: LikeEventID})
+	if err != nil {
+		log.Printf("Send msg to broker err: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
-	// respBody, err := json.Marshal(taskServiceResponse.Task)
-	// if err != nil {
-	// 	log.Default().Printf("Response json marshal error: %v", err)
-	// 	http.Error(w, "Internal server error", http.StatusInternalServerError)
-	// 	return
-	// }
-	// w.Write(respBody)
-
-	_ = taskID
 	w.WriteHeader(http.StatusOK)
 }

@@ -88,5 +88,5 @@ curl -X DELETE "localhost:8080/task?token=<your-token>&task_id=<your-task-id>"
 # Получение задачи
 curl -X GET "localhost:8080/task?token=<your-token>&task_id=<required-task-id>"
 # Получение списка задач
-curl -X GET "localhost:8080/tasks?token=<your-token>&page_index=<required-page-index>&tasks_per_page=<size-of-tasks-page-you-want>"
+curl -X GET "localhost:8080/tasks?token=<your-token>&author_login=<required-author-login>&page_index=<required-page-index>&tasks_per_page=<size-of-tasks-page-you-want>"
 ```

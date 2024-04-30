@@ -46,6 +46,9 @@ func SetupHandlers() {
 	router.Get("/task", TaskGetHandler)
 	router.Get("/tasks", TasksGetPageHandler)
 
+	// router.Get("/task", TaskGetHandler)
+	// router.Get("/tasks", TasksGetPageHandler)
+
 	http.Handle("/", router)
 }
 
@@ -341,10 +344,11 @@ func TaskGetHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func TasksGetPageHandler(w http.ResponseWriter, req *http.Request) {
-	if !req.URL.Query().Has("page_index") {
+	if !req.URL.Query().Has("author_login") || !req.URL.Query().Has("page_index") || !req.URL.Query().Has("tasks_per_page") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
 	}
+	authorLogin := req.URL.Query().Get("author_login")
 	pageIndex, err := strconv.ParseUint(req.URL.Query().Get("page_index"), 10, 32)
 	if err != nil {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
@@ -372,9 +376,15 @@ func TasksGetPageHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	authorID := clientDB.LookupLogin(authorLogin)
+	if authorID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	taskServiceResponse, err := taskService.client.GetTasksPage(ctx, &proto.GetTasksPageRequest{UserId: *userID, PageIndex: uint32(pageIndex), TasksPerPage: uint32(tasksPerPage)})
+	taskServiceResponse, err := taskService.client.GetTasksPage(ctx, &proto.GetTasksPageRequest{UserId: *authorID, PageIndex: uint32(pageIndex), TasksPerPage: uint32(tasksPerPage)})
 	if err != nil {
 		log.Default().Printf("Get task error: %v", err)
 		http.Error(w, "Task or user not found", http.StatusNotFound)

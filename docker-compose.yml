@@ -59,3 +59,22 @@ services:
       ALLOW_PLAINTEXT_LISTENER: "yes"
     depends_on:
       - zookeeper
+  stat_db:
+    image: postgres:15.6
+    restart: always
+    environment:
+      POSTGRES_DB: "${STAT_DB_NAME}"
+      POSTGRES_USER: "${STAT_DB_USER}"
+      POSTGRES_PASSWORD: "${STAT_DB_PASSWORD}"
+  stat_service:
+    build:
+      context: .
+      dockerfile: ./stat_service/stat_service.dockerfile
+    environment:
+      POSTGRES_URL: "postgres://${STAT_DB_USER}:${STAT_DB_PASSWORD}@stat_db:5432/${STAT_DB_NAME}"
+      BROKER_TOPIC_ENV: "${BROKER_TOPIC_ENV}"
+    ports:
+      - "12345:12345"
+    depends_on:
+      - stat_db
+      - stat_broker

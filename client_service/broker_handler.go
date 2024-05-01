@@ -39,14 +39,10 @@ func (broker *BrokerHandler) SendEventMessage(msg BrokerMessage) error {
 
 	// broker.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 
-	wrote := 0
-	for wrote < len(buf) {
-		val, err := broker.conn.Write(buf[wrote:])
-		if err != nil {
-			log.Printf("Error while writing to broker: %v", err)
-		}
-
-		wrote += val
+	_, err = broker.conn.WriteMessages(kafka.Message{Value: buf})
+	if err != nil {
+		log.Printf("Error while writing to broker: %v", err)
+		return err
 	}
 	return nil
 }

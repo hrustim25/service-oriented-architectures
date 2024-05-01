@@ -14,6 +14,7 @@ touch .env
 echo "CLIENT_DB_NAME=<your-db-name>" >>.env
 echo "CLIENT_DB_USER=<your-db-user>" >>.env
 echo "CLIENT_DB_PASSWORD=<your-db-password>" >>.env
+echo "BROKER_TOPIC_ENV=<your-topic>" >>.env
 ```
 
 Опционально, для повышения безопасности нужно измененить ключи шифрования.
@@ -89,4 +90,44 @@ curl -X DELETE "localhost:8080/task?token=<your-token>&task_id=<your-task-id>"
 curl -X GET "localhost:8080/task?token=<your-token>&task_id=<required-task-id>"
 # Получение списка задач
 curl -X GET "localhost:8080/tasks?token=<your-token>&author_login=<required-author-login>&page_index=<required-page-index>&tasks_per_page=<size-of-tasks-page-you-want>"
+```
+
+# Брокер сообщений
+
+Для отправки пользовательских событий используется брокер сообщений Apache Kafka. Чтобы поднять брокер:
+```
+docker compose up --force-recreate zookeeper stat_broker
+```
+
+# Сервис статистики
+
+## Подготовка к сборке сервиса
+
+Установка переменных окружения для БД:
+```
+touch .env
+echo "STAT_DB_NAME=<your-db-name>" >>.env
+echo "STAT_DB_USER=<your-db-user>" >>.env
+echo "STAT_DB_PASSWORD=<your-db-password>" >>.env
+echo "BROKER_TOPIC_ENV=<your-topic>" >>.env
+```
+
+## Сборка сервиса статистики
+
+Из корневой директории
+```
+docker compose build
+docker compose up --force-recreate stat_service stat_db
+```
+
+## Обращение к сервису статистики
+
+Во всех запросах используется токен, выданный при регистрации/авторизации.
+```
+# Добавить просмотр у задачи
+curl -X POST "localhost:8080/task/view?token=<your-token>&task_id=<your-task-id>"
+# Поставить лайк на задачу
+curl -X POST "localhost:8080/task/like?token=<your-token>&task_id=<your-task-id>"
+# Получение списка всех событий по задачам (напрямую к сервису)
+curl -X GET "localhost:12345/stats"
 ```

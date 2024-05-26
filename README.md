@@ -125,9 +125,9 @@ docker compose up --force-recreate stat_service stat_db
 Во всех запросах используется токен, выданный при регистрации/авторизации.
 ```
 # Добавить просмотр у задачи
-curl -X POST "localhost:8080/task/view?token=<your-token>&task_id=<your-task-id>"
+curl -X POST "localhost:8080/task/view?token=<your-token>&task_id=<your-task-id>&author_id=<your-task-author-id>"
 # Поставить лайк на задачу
-curl -X POST "localhost:8080/task/like?token=<your-token>&task_id=<your-task-id>"
+curl -X POST "localhost:8080/task/like?token=<your-token>&task_id=<your-task-id>&author_id=<your-task-author-id>"
 # Получение списка всех событий по задачам (напрямую к сервису)
 curl -X GET "localhost:12345/stats"
 ```

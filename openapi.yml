@@ -309,6 +309,11 @@ paths:
           required: true
           schema:
             type: integer
+        - name: author_id
+          in: query
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
           description: 'Add view task successful'
@@ -329,6 +334,11 @@ paths:
           schema:
             type: string
         - name: task_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: author_id
           in: query
           required: true
           schema:

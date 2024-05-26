@@ -410,6 +410,15 @@ func TaskViewHandler(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
 	}
+	if !req.URL.Query().Has("author_id") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	authorID, err := strconv.ParseUint(req.URL.Query().Get("author_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
 	if !req.URL.Query().Has("token") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
@@ -427,7 +436,7 @@ func TaskViewHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = statBroker.SendEventMessage(BrokerMessage{UserID: *userID, TaskID: taskID, EventID: ViewEventID})
+	err = statBroker.SendEventMessage(BrokerMessage{UserID: *userID, TaskID: taskID, TaskAuthorId: authorID, EventID: ViewEventID})
 	if err != nil {
 		log.Printf("Send msg to broker err: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -447,6 +456,15 @@ func TaskLikeHandler(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
 	}
+	if !req.URL.Query().Has("author_id") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	authorID, err := strconv.ParseUint(req.URL.Query().Get("author_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
 	if !req.URL.Query().Has("token") {
 		http.Error(w, "Request data is invalid", http.StatusBadRequest)
 		return
@@ -464,7 +482,7 @@ func TaskLikeHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = statBroker.SendEventMessage(BrokerMessage{UserID: *userID, TaskID: taskID, EventID: LikeEventID})
+	err = statBroker.SendEventMessage(BrokerMessage{UserID: *userID, TaskID: taskID, TaskAuthorId: authorID, EventID: LikeEventID})
 	if err != nil {
 		log.Printf("Send msg to broker err: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

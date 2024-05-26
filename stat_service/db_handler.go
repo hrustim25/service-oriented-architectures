@@ -17,10 +17,11 @@ const (
 )
 
 type TaskEvent struct {
-	TaskId    uint64 `json:"task_id"`
-	UserId    uint64 `json:"user_id"`
-	EventID   int    `json:"event_id"`
-	EventDate string `json:"event_date"`
+	TaskId       uint64 `json:"task_id"`
+	TaskAuthorId uint64 `json:"task_author_id"`
+	UserId       uint64 `json:"user_id"`
+	EventID      int    `json:"event_id"`
+	EventDate    string `json:"event_date"`
 }
 
 type DBHandler struct {
@@ -44,7 +45,7 @@ func (h *DBHandler) AddEvent(event TaskEvent) error {
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 
-	_, err := h.db.Exec(context.Background(), addEventQuery, event.TaskId, event.UserId, event.EventID, event.EventDate)
+	_, err := h.db.Exec(context.Background(), addEventQuery, event.TaskId, event.TaskAuthorId, event.UserId, event.EventID, event.EventDate)
 	if err != nil {
 		return err
 	}
@@ -62,7 +63,7 @@ func (h *DBHandler) GetEvents() ([]TaskEvent, error) {
 	}
 	for rows.Next() {
 		var event TaskEvent
-		err := rows.Scan(&event.TaskId, &event.UserId, &event.EventID, &event.EventDate)
+		err := rows.Scan(&event.TaskId, &event.TaskAuthorId, &event.UserId, &event.EventID, &event.EventDate)
 		if err != nil {
 			return nil, err
 		}

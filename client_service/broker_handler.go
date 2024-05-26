@@ -20,9 +20,10 @@ const (
 )
 
 type BrokerMessage struct {
-	UserID  uint64 `json:"user_id"`
-	TaskID  uint64 `json:"task_id"`
-	EventID uint64 `json:"event_id"`
+	UserID       uint64 `json:"user_id"`
+	TaskID       uint64 `json:"task_id"`
+	TaskAuthorId uint64 `json:"task_author_id"`
+	EventID      uint64 `json:"event_id"`
 }
 
 type BrokerHandler struct {

@@ -64,5 +64,4 @@ func SetupStatMessageBroker() {
 	}
 
 	statBroker = BrokerHandler{conn}
-	_ = statBroker
 }

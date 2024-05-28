@@ -12,6 +12,11 @@ type AuthResponseBody struct {
 	Token string `json:"token"`
 }
 
+type GetTopTasksBodyItem struct {
+	TaskID       uint64 `json:"task_id"`
+	TaskAuthorID uint64 `json:"task_author_id"`
+}
+
 func SetupHandlers() {
 	router := chi.NewRouter()
 

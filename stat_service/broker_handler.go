@@ -80,7 +80,7 @@ func SetupAndStartStatMessageBrokerConsumer() {
 			err = statDB.AddEvent(TaskEvent{TaskId: msg.TaskID, TaskAuthorId: msg.TaskAuthorId, UserId: msg.UserID, EventID: msg.EventID})
 			if err != nil {
 				log.Printf("Write to DB error: %v", err)
-				break
+				continue
 			}
 		}
 	}()

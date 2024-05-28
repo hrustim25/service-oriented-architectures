@@ -354,3 +354,66 @@ paths:
           description: 'User or task not found'
         '500':
           description: 'Internal server error'
+  /task/stat:
+    get:
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: task_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Get task stat successful'
+        '400':
+          description: 'Request data is invalid'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Task not found'
+        '500':
+          description: 'Internal server error'
+  /top/tasks:
+    get:
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: stat_type
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 'Get top tasks successful'
+        '400':
+          description: 'Request data is invalid'
+        '401':
+          description: 'Unauthorized'
+        '500':
+          description: 'Internal server error'
+  /top/authors:
+    get:
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Get top authors successful'
+        '400':
+          description: 'Request data is invalid'
+        '401':
+          description: 'Unauthorized'
+        '500':
+          description: 'Internal server error'

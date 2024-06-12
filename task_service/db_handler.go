@@ -97,7 +97,7 @@ func (h *DBHandler) DeleteTask(authorID uint64, taskID uint64) error {
 
 func (h *DBHandler) GetTask(authorID uint64, taskID uint64) (Task, error) {
 	currentTaskAuthorId := h.LookupTask(taskID)
-	if currentTaskAuthorId == nil || *currentTaskAuthorId != authorID {
+	if currentTaskAuthorId == nil {
 		return Task{}, errors.New("unknown task-id and author-id pair")
 	}
 	var task Task

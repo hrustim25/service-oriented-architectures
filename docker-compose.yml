@@ -16,10 +16,12 @@ services:
       POSTGRES_URL: "postgres://${CLIENT_DB_USER}:${CLIENT_DB_PASSWORD}@client_db:5432/${CLIENT_DB_NAME}"
       PRIVATE_KEY_PATH: "crypto/signature.pem"
       PUBLIC_KEY_PATH: "crypto/signature.pub"
+      BROKER_TOPIC_ENV: "${BROKER_TOPIC_ENV}"
     ports:
       - "8080:8080"
     depends_on:
       - client_db
+      - stat_broker
   task_db:
     image: postgres:15.6
     restart: always
@@ -37,3 +39,42 @@ services:
       - "50051:50051"
     depends_on:
       - task_db
+  zookeeper:
+    image: zookeeper:3.4.9
+    restart: always
+    hostname: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+  stat_broker:
+    image: bitnami/kafka:2.7.0
+    restart: always
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://stat_broker:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    depends_on:
+      - zookeeper
+  stat_db:
+    image: postgres:15.6
+    restart: always
+    environment:
+      POSTGRES_DB: "${STAT_DB_NAME}"
+      POSTGRES_USER: "${STAT_DB_USER}"
+      POSTGRES_PASSWORD: "${STAT_DB_PASSWORD}"
+  stat_service:
+    build:
+      context: .
+      dockerfile: ./stat_service/stat_service.dockerfile
+    environment:
+      POSTGRES_URL: "postgres://${STAT_DB_USER}:${STAT_DB_PASSWORD}@stat_db:5432/${STAT_DB_NAME}"
+      BROKER_TOPIC_ENV: "${BROKER_TOPIC_ENV}"
+    ports:
+      - "12345:12345"
+    depends_on:
+      - stat_db
+      - stat_broker

@@ -16,6 +16,7 @@ func main() {
 	SetupDB()
 	SetupHandlers()
 	SetupTaskServiceHandler()
+	SetupStatMessageBroker()
 
 	log.Default().Println("Starting client server...")
 

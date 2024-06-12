@@ -61,8 +61,8 @@ echo "TASK_DB_PASSWORD=<your-db-password>" >>.env
 
 Опционально, можно самостоятельно сгенерировать код по proto-файлам:
 ```
-rm -rf client_service/proto
-rm -rf task_service/proto
+rm -rf client_service/proto/task*
+rm -rf task_service/proto/task*
 
 protoc -I=proto --go_out=client_service/ --go-grpc_out=client_service/ proto/task_service.proto
 protoc -I=proto --go_out=task_service/ --go-grpc_out=task_service/ proto/task_service.proto
@@ -112,6 +112,15 @@ echo "STAT_DB_PASSWORD=<your-db-password>" >>.env
 echo "BROKER_TOPIC_ENV=<your-topic>" >>.env
 ```
 
+Также, можно самостоятельно сгенерировать код по proto-файлам:
+```
+rm -rf client_service/proto/stat*
+rm -rf stat_service/proto/stat*
+
+protoc -I=proto --go_out=client_service/ --go-grpc_out=client_service/ proto/stat_service.proto
+protoc -I=proto --go_out=stat_service/ --go-grpc_out=stat_service/ proto/stat_service.proto
+```
+
 ## Сборка сервиса статистики
 
 Из корневой директории
@@ -130,4 +139,11 @@ curl -X POST "localhost:8080/task/view?token=<your-token>&task_id=<your-task-id>
 curl -X POST "localhost:8080/task/like?token=<your-token>&task_id=<your-task-id>&author_id=<your-task-author-id>"
 # Получение списка всех событий по задачам (напрямую к сервису)
 curl -X GET "localhost:12345/stats"
+
+# Получить всю статистику по 1 задаче
+curl -X POST "localhost:8080/task/like?token=<your-token>&task_id=<your-task-id>"
+# Топ 5 задач по критерию
+curl -X POST "localhost:8080/top/tasks?token=<your-token>&stat_type=<your-stat-criteria-type>"
+# Топ 3 автора по лайкам
+curl -X POST "localhost:8080/top/authors?token=<your-token>"
 ```

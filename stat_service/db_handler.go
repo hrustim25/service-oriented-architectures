@@ -27,6 +27,13 @@ type TaskEvent struct {
 type TaskInfo struct {
 	TaskId       uint64 `json:"task_id"`
 	TaskAuthorId uint64 `json:"task_author_id"`
+	ViewCount    uint32 `json:"view_count"`
+	LikeCount    uint32 `json:"like_count"`
+}
+
+type AuthorInfo struct {
+	AuthorId  uint64 `json:"author_id"`
+	LikeCount uint32 `json:"like_count"`
 }
 
 type DBHandler struct {
@@ -46,8 +53,11 @@ var addEventQuery string
 //go:embed sql/get_events.sql
 var getEventsQuery string
 
-//go:embed sql/get_event_count.sql
-var getEventCountQuery string
+//go:embed sql/get_event_count_for_task.sql
+var getEventCountForTaskQuery string
+
+//go:embed sql/get_event_count_for_author.sql
+var getEventCountForAuthorQuery string
 
 //go:embed sql/get_top_tasks.sql
 var getTopTasksQuery string
@@ -86,12 +96,24 @@ func (h *DBHandler) GetEvents() ([]TaskEvent, error) {
 	return events, nil
 }
 
-func (h *DBHandler) GetEventCount(taskID uint64, eventID uint32) (uint32, error) {
+func (h *DBHandler) GetEventCountForTask(taskID uint64, eventID uint32) (uint32, error) {
 	h.mtx.Lock()
 	defer h.mtx.Unlock()
 
 	var count uint32
-	err := h.db.QueryRow(context.Background(), getEventCountQuery, taskID, eventID).Scan(&count)
+	err := h.db.QueryRow(context.Background(), getEventCountForTaskQuery, taskID, eventID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (h *DBHandler) GetEventCountForAuthor(authorID uint64, eventID uint32) (uint32, error) {
+	h.mtx.Lock()
+	defer h.mtx.Unlock()
+
+	var count uint32
+	err := h.db.QueryRow(context.Background(), getEventCountForAuthorQuery, authorID, eventID).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
@@ -100,7 +122,6 @@ func (h *DBHandler) GetEventCount(taskID uint64, eventID uint32) (uint32, error)
 
 func (h *DBHandler) GetTopTasks(eventID uint32) ([]TaskInfo, error) {
 	h.mtx.Lock()
-	defer h.mtx.Unlock()
 
 	var tasks []TaskInfo
 	rows, err := h.db.Query(context.Background(), getTopTasksQuery, eventID)
@@ -115,14 +136,26 @@ func (h *DBHandler) GetTopTasks(eventID uint32) ([]TaskInfo, error) {
 		}
 		tasks = append(tasks, taskInfo)
 	}
+	rows.Close()
+	h.mtx.Unlock()
+
+	for i := range tasks {
+		tasks[i].ViewCount, err = statDB.GetEventCountForTask(tasks[i].TaskId, ViewEventID)
+		if err != nil {
+			return nil, err
+		}
+		tasks[i].LikeCount, err = statDB.GetEventCountForTask(tasks[i].TaskId, LikeEventID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return tasks, nil
 }
 
-func (h *DBHandler) GetTopAuthors() ([]uint64, error) {
+func (h *DBHandler) GetTopAuthors() ([]AuthorInfo, error) {
 	h.mtx.Lock()
-	defer h.mtx.Unlock()
 
-	var authorIDs []uint64
+	var authors []AuthorInfo
 	rows, err := h.db.Query(context.Background(), getTopAuthorsQuery, LikeEventID)
 	if err != nil {
 		return nil, err
@@ -133,9 +166,18 @@ func (h *DBHandler) GetTopAuthors() ([]uint64, error) {
 		if err != nil {
 			return nil, err
 		}
-		authorIDs = append(authorIDs, authorID)
+		authors = append(authors, AuthorInfo{AuthorId: authorID})
 	}
-	return authorIDs, nil
+	rows.Close()
+	h.mtx.Unlock()
+
+	for i := range authors {
+		authors[i].LikeCount, err = statDB.GetEventCountForAuthor(authors[i].AuthorId, LikeEventID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return authors, nil
 }
 
 func SetupDB() {

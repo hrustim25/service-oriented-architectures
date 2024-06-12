@@ -370,6 +370,17 @@ paths:
       responses:
         '200':
           description: 'Get task stat successful'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: integer
+                  view_count:
+                    type: integer
+                  like_count:
+                    type: integer
         '400':
           description: 'Request data is invalid'
         '401':
@@ -394,6 +405,23 @@ paths:
       responses:
         '200':
           description: 'Get top tasks successful'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    task_id:
+                      type: integer
+                    author_id:
+                      type: integer
+                    author_login:
+                      type: string
+                    view_count:
+                      type: integer
+                    like_count:
+                      type: integer
         '400':
           description: 'Request data is invalid'
         '401':
@@ -411,6 +439,19 @@ paths:
       responses:
         '200':
           description: 'Get top authors successful'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    author_id:
+                      type: integer
+                    author_login:
+                      type: string
+                    like_count:
+                      type: integer
         '400':
           description: 'Request data is invalid'
         '401':

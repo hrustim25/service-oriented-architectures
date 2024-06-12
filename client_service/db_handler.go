@@ -45,6 +45,9 @@ var loadUserQuery string
 //go:embed sql/update_user.sql
 var updateUserQuery string
 
+//go:embed sql/get_login_by_id.sql
+var getLoginById string
+
 func (h *DBHandler) LookupLogin(login string) *uint64 {
 	rows, err := h.db.Query(context.Background(), lookupLoginQuery, login)
 	if err != nil {
@@ -94,6 +97,19 @@ func (h *DBHandler) UpdateUserData(user User) error {
 	_, err := h.db.Exec(context.Background(), updateUserQuery,
 		user.Name, user.Surname, user.Birthdate, user.Email, user.PhoneNumber, user.Login)
 	return err
+}
+
+func (h *DBHandler) GetLoginsByIds(userIDs []uint64) ([]string, error) {
+	logins := make([]string, 0, len(userIDs))
+	for _, userID := range userIDs {
+		var login string
+		err := h.db.QueryRow(context.Background(), getLoginById, userID).Scan(&login)
+		if err != nil {
+			return nil, err
+		}
+		logins = append(logins, login)
+	}
+	return logins, nil
 }
 
 func SetupDB() {

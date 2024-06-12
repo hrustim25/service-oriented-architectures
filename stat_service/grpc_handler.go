@@ -15,11 +15,11 @@ type statServiceServer struct {
 }
 
 func (server *statServiceServer) GetEventsCount(ctx context.Context, in *proto.GetEventsCountRequest) (*proto.GetEventsCountResponse, error) {
-	viewCount, err := server.statDB.GetEventCount(in.TaskId, ViewEventID)
+	viewCount, err := server.statDB.GetEventCountForTask(in.TaskId, ViewEventID)
 	if err != nil {
 		return nil, err
 	}
-	likeCount, err := server.statDB.GetEventCount(in.TaskId, LikeEventID)
+	likeCount, err := server.statDB.GetEventCountForTask(in.TaskId, LikeEventID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (server *statServiceServer) GetTopTasks(ctx context.Context, in *proto.GetT
 	resp := &proto.GetTopTasksResponse{}
 	resp.Tasks = make([]*proto.TopTask, 0, len(topTasks))
 	for _, task := range topTasks {
-		resp.Tasks = append(resp.Tasks, &proto.TopTask{TaskId: task.TaskId, TaskAuthorId: task.TaskAuthorId})
+		resp.Tasks = append(resp.Tasks, &proto.TopTask{TaskId: task.TaskId, TaskAuthorId: task.TaskAuthorId, ViewCount: task.ViewCount, LikeCount: task.LikeCount})
 	}
 	return resp, nil
 }
@@ -46,8 +46,8 @@ func (server *statServiceServer) GetTopAuthors(ctx context.Context, in *emptypb.
 	}
 	resp := &proto.GetTopAuthorsResponse{}
 	resp.Authors = make([]*proto.TopAuthor, 0, len(topAuthors))
-	for _, authorID := range topAuthors {
-		resp.Authors = append(resp.Authors, &proto.TopAuthor{TaskAuthorId: authorID})
+	for _, author := range topAuthors {
+		resp.Authors = append(resp.Authors, &proto.TopAuthor{TaskAuthorId: author.AuthorId, LikeCount: author.LikeCount})
 	}
 	return resp, nil
 }

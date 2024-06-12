@@ -13,6 +13,7 @@ import (
 	"client_service/proto"
 
 	"github.com/go-chi/chi/v5"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type AuthResponseBody struct {
@@ -33,6 +34,26 @@ type Task struct {
 	CompletionStatus string `json:"completion_status"`
 }
 
+type TaskStatResponseBody struct {
+	TaskId    uint64 `json:"task_id"`
+	ViewCount uint32 `json:"view_count"`
+	LikeCount uint32 `json:"like_count"`
+}
+
+type TopTasksResponseBodyItem struct {
+	TaskId      uint64 `json:"task_id"`
+	AuthorId    uint64 `json:"author_id"`
+	AuthorLogin string `json:"author_login"`
+	ViewCount   uint32 `json:"view_count"`
+	LikeCount   uint32 `json:"like_count"`
+}
+
+type TopAuthorsResponseBodyItem struct {
+	AuthorId    uint64 `json:"author_id"`
+	AuthorLogin string `json:"author_login"`
+	LikeCount   uint32 `json:"like_count"`
+}
+
 func SetupHandlers() {
 	router := chi.NewRouter()
 
@@ -48,6 +69,10 @@ func SetupHandlers() {
 
 	router.Post("/task/view", TaskViewHandler)
 	router.Post("/task/like", TaskLikeHandler)
+
+	router.Get("/task/stat", TaskStatHandler)
+	router.Get("/top/tasks", TopTasksHandler)
+	router.Get("/top/authors", TopAuthorsHandler)
 
 	http.Handle("/", router)
 }
@@ -490,4 +515,166 @@ func TaskLikeHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func TaskStatHandler(w http.ResponseWriter, req *http.Request) {
+	if !req.URL.Query().Has("task_id") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	taskID, err := strconv.ParseUint(req.URL.Query().Get("task_id"), 10, 64)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	statServiceResponse, err := statService.client.GetEventsCount(ctx, &proto.GetEventsCountRequest{TaskId: taskID})
+	if err != nil {
+		log.Default().Printf("Get task stat error: %v", err)
+		http.Error(w, "Task or user not found", http.StatusNotFound)
+		return
+	}
+
+	resp := TaskStatResponseBody{TaskId: taskID, ViewCount: statServiceResponse.ViewCount, LikeCount: statServiceResponse.LikeCount}
+
+	respBody, err := json.Marshal(resp)
+	if err != nil {
+		log.Default().Printf("Response json marshal error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBody)
+}
+
+func TopTasksHandler(w http.ResponseWriter, req *http.Request) {
+	if !req.URL.Query().Has("stat_type") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	statType, err := strconv.ParseUint(req.URL.Query().Get("stat_type"), 10, 32)
+	if err != nil {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	statServiceResponse, err := statService.client.GetTopTasks(ctx, &proto.GetTopTasksRequest{EventType: uint32(statType)})
+	if err != nil {
+		log.Default().Printf("Get top tasks error: %v", err)
+		http.Error(w, "Task or user not found", http.StatusNotFound)
+		return
+	}
+
+	userIds := make([]uint64, 0, len(statServiceResponse.Tasks))
+	for _, task := range statServiceResponse.Tasks {
+		userIds = append(userIds, task.TaskAuthorId)
+	}
+
+	userLogins, err := clientDB.GetLoginsByIds(userIds)
+	if err != nil {
+		log.Default().Printf("Get logins error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := make([]TopTasksResponseBodyItem, 0, len(statServiceResponse.Tasks))
+	for i, task := range statServiceResponse.Tasks {
+		resp = append(resp, TopTasksResponseBodyItem{TaskId: task.TaskId, AuthorId: userIds[i], AuthorLogin: userLogins[i], ViewCount: task.ViewCount, LikeCount: task.LikeCount})
+	}
+
+	respBody, err := json.Marshal(resp)
+	if err != nil {
+		log.Default().Printf("Response json marshal error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBody)
+}
+
+func TopAuthorsHandler(w http.ResponseWriter, req *http.Request) {
+	if !req.URL.Query().Has("token") {
+		http.Error(w, "Request data is invalid", http.StatusBadRequest)
+		return
+	}
+	token := req.URL.Query().Get("token")
+	login, err := DecryptToken(token)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID := clientDB.LookupLogin(login)
+	if userID == nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	statServiceResponse, err := statService.client.GetTopAuthors(ctx, &emptypb.Empty{})
+	if err != nil {
+		log.Default().Printf("Get top tasks error: %v", err)
+		http.Error(w, "Task or user not found", http.StatusNotFound)
+		return
+	}
+
+	userIds := make([]uint64, 0, len(statServiceResponse.Authors))
+	for _, author := range statServiceResponse.Authors {
+		userIds = append(userIds, author.TaskAuthorId)
+	}
+
+	userLogins, err := clientDB.GetLoginsByIds(userIds)
+	if err != nil {
+		log.Default().Printf("Get logins error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := make([]TopAuthorsResponseBodyItem, 0, len(statServiceResponse.Authors))
+	for i, author := range statServiceResponse.Authors {
+		resp = append(resp, TopAuthorsResponseBodyItem{AuthorId: userIds[i], AuthorLogin: userLogins[i], LikeCount: author.LikeCount})
+	}
+
+	respBody, err := json.Marshal(resp)
+	if err != nil {
+		log.Default().Printf("Response json marshal error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Write(respBody)
 }

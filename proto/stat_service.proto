@@ -20,9 +20,14 @@ message GetTopAuthorsResponse { repeated TopAuthor authors = 1; }
 message TopTask {
   uint64 task_id = 1;
   uint64 task_author_id = 2;
+  uint32 view_count = 3;
+  uint32 like_count = 4;
 }
 
-message TopAuthor { uint64 task_author_id = 1; }
+message TopAuthor {
+  uint64 task_author_id = 1;
+  uint32 like_count = 2;
+}
 
 service StatService {
   rpc GetEventsCount(GetEventsCountRequest) returns (GetEventsCountResponse);
